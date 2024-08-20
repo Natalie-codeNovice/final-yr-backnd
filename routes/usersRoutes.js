@@ -13,5 +13,3 @@ router.put('/password/:id',checkToken,authorizeUser, userController.updatePasswo
 router.delete('/:id',checkToken,authorizeUser, userController.deleteUser)
 
 module.exports = router
-
-updatePassword 
