@@ -183,6 +183,7 @@ const updateUser = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 phoneNumber: user.phoneNumber,
+                password: user.password,
             },
         });
     } catch (error) {
