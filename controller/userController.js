@@ -77,7 +77,7 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
-            res.status(400).json({ message: 'email not found' });
+            res.status(400).json({ message: 'Invalid email or password' });
             return;
         }
 
@@ -102,7 +102,7 @@ const loginUser = async (req, res) => {
                 });
 
         } else {
-            res.status(401).json({ message: 'Incorrect password' });
+            res.status(401).json({ message: 'Incorrect email or password' });
         }
     } catch (error) {
         res.status(500).json({ message: 'Login failed' });
