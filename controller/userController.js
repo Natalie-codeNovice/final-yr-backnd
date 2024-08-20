@@ -162,12 +162,6 @@ const updateUser = async (req, res) => {
                 return;
             }
         }
-
-        if (req.body.password) {
-            const hashedPassword = await bcrypt.hash(req.body.password, 10); // 10 is the salt rounds
-            user.password = hashedPassword;
-        }
-
         // Update other user data based on req.body (e.g., username, email, phone number)
         user.username = req.body.username || user.username;
         user.email = req.body.email || user.email;
@@ -183,7 +177,6 @@ const updateUser = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 phoneNumber: user.phoneNumber,
-                password: user.password,
             },
         });
     } catch (error) {
@@ -206,10 +199,46 @@ const deleteUser = async (req, res) => {
     }
 };
 
+
+// update user password
+const updatePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.params.id;
+
+    try {
+        // Fetch the user from the database
+        const user = await User.findOne({ where: { id: userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Verify the current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Current password is incorrect' });
+        }
+
+        // Hash the new password
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update the user's password
+        user.password = hashedNewPassword;
+        await user.save();
+
+        res.status(200).json({ message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Error updating password:', error);
+        res.status(500).json({ message: 'Error updating password' });
+    }
+};
+
 module.exports = {
     addUser,
     loginUser,
     getOneUser,
     updateUser,
     deleteUser,
-}
+    updatePassword, // Export the new function
+};
+
