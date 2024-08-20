@@ -102,7 +102,7 @@ const loginUser = async (req, res) => {
                 });
 
         } else {
-            res.status(401).json({ message: 'Incorrect email or password' });
+            res.status(401).json({ message: 'Invalid credentials' });
         }
     } catch (error) {
         res.status(500).json({ message: 'Login failed' });
