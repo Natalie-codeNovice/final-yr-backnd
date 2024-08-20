@@ -9,6 +9,9 @@ router.post('/login', userController.loginUser)
 
 router.get('/:id',checkToken,authorizeUser, userController.getOneUser)
 router.put('/:id',checkToken,authorizeUser, userController.updateUser)
+router.put('/:id',checkToken,authorizeUser, userController.updatePassword)
 router.delete('/:id',checkToken,authorizeUser, userController.deleteUser)
 
 module.exports = router
+
+updatePassword 
