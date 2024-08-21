@@ -150,18 +150,17 @@ const generateDailyReport = async (req, res) => {
             }
         });
 
-        const netBalance = await db.netBalances.findOne({ where: { userId } });
 
         const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-
+        const netBalance = totalIncome - (totalExpenses + totalSavings);
         res.status(200).json({
             transactions,
             totalIncome,
             totalSavings,
             totalExpenses,
-            netBalance: netBalance ? netBalance.balance : 0
+            netBalance
         });
     } catch (error) {
         console.error('Error generating daily report:', error);
@@ -191,18 +190,17 @@ const generateWeeklyReport = async (req, res) => {
             }
         });
 
-        const netBalance = await db.netBalances.findOne({ where: { userId } });
 
         const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-
+        const netBalance = totalIncome - (totalExpenses + totalSavings);
         res.status(200).json({
             transactions,
             totalIncome,
             totalSavings,
             totalExpenses,
-            netBalance: netBalance ? netBalance.balance : 0
+            netBalance
         });
     } catch (error) {
         console.error('Error generating weekly report:', error);
@@ -231,18 +229,17 @@ const generateMonthlyReport = async (req, res) => {
             }
         });
 
-        const netBalance = await db.netBalances.findOne({ where: { userId } });
 
         const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-
+        const netBalance = totalIncome - (totalExpenses + totalSavings);
         res.status(200).json({
             transactions,
             totalIncome,
             totalSavings,
             totalExpenses,
-            netBalance: netBalance ? netBalance.balance : 0
+            netBalance
         });
     } catch (error) {
         console.error('Error generating monthly report:', error);
