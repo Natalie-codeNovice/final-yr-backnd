@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const {checkToken} = require('../auth/tokenValidation.js')
 const transactionController = require('../controller/transactionController.js');
+const { authorizeUser } = require('../auth/authenticate.js');
 
 //transactions
 router.post('/add', transactionController.createTransaction);
-router.get('/transactions/:id', transactionController.getUserTransactions);
+router.get('/transactions/:id',checkToken,authorizeUser, transactionController.getUserTransactions);
 router.delete('/transactions/:id', transactionController.deleteTransaction);
 
 //reports
