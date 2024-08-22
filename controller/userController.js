@@ -5,8 +5,6 @@ const { Op } = require('sequelize');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto'); 
 const jwtSecret = process.env.JWT_SECRET;
-const pass = process.env.USER_PASSWORD;
-const userEmail = process.env.Email;
 // create main model
 const User = db.users;
 
@@ -262,8 +260,8 @@ const forgotPassword = async (req, res) => {
         let transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: userEmail,
-                pass: pass 
+                user: process.env.EMAIL_USER,
+                pass: process.env.USER_PASS
             }
         });
 
