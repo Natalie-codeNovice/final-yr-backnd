@@ -1,7 +1,11 @@
+// config/dbconfig.js
+require('dotenv').config(); // Load environment variables
+
 module.exports = {
-    HOST: 'bhoonrvmpbgfumftgsqj-mysql.services.clever-cloud.com',
-    USER: 'uapcnmnignmajtzo',
-    PASSWORD: '4lL057B0InHsi7yrKvPN',
-    DB:'bhoonrvmpbgfumftgsqj',
+    HOST: process.env.DB_HOST,
+    USER: process.env.DB_USER,
+    PASSWORD: process.env.DB_PASSWORD,
+    DB: process.env.DB_NAME,
     dialect: 'mysql'
-}
+
+};

@@ -1,5 +1,5 @@
 const { verify } = require('jsonwebtoken');
-const jwtSecret = process.env.JWT_SECRET || 'qwe1234';
+const jwtSecret = process.env.JWT_SECRET;
 
 module.exports = {
     checkToken: (req, res, next) => {

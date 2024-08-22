@@ -4,7 +4,9 @@ const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto'); 
-
+const jwtSecret = process.env.JWT_SECRET;
+const pass = process.env.USER_PASSWORD;
+const userEmail = process.env.Email;
 // create main model
 const User = db.users;
 
@@ -86,7 +88,7 @@ const loginUser = async (req, res) => {
         // Compare the provided password with the hashed password in the database
         if (bcrypt.compareSync(password, user.password)) {
             // Passwords match, generate a JWT token using your actual secret key
-            const token = jwt.sign({ userId: user.id }, 'qwe1234', { expiresIn: '1h' });
+            const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '1h' });
 
             return res
                 .cookie("access_token", token, {
@@ -247,7 +249,7 @@ const forgotPassword = async (req, res) => {
         }
 
         // Generate a new random password
-        const newPassword = crypto.randomBytes(3).toString('hex'); // Generates a 16-character password
+        const newPassword = crypto.randomBytes(3).toString('hex'); // Generates a 12-character password
 
         // Hash the new password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -256,37 +258,59 @@ const forgotPassword = async (req, res) => {
         user.password = hashedNewPassword;
         await user.save();
 
-        // Send the new password to the user's email
+        // Set up email transport
         let transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'paccyhabi@gmail.com',
-                pass: 'fixz dwsw iece fbmh'
+                user: userEmail,
+                pass: pass 
             }
         });
 
+        // Email options
         let mailOptions = {
-            from: 'paccyhabi@gmail.com', // Sender address
-            to: user.email,               // List of recipients
-            subject: 'Your New Password', // Subject line
-            text: `Your new password is: ${newPassword}`,  // Plain text body
-            html: `<b>Your new password is: ${newPassword}</b>` // HTML body
+            from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+            to: user.email, 
+            subject: 'Your New Password for Personal Finance Tracker',
+            text: `Dear ${user.username},
+
+We received a request to reset your password for your Personal Finance Tracker account.
+
+Your new password is: ${newPassword}
+
+Please use this password to log in to your account. We recommend changing your password after you log in to something more memorable and secure.
+
+If you did not request a password reset, please ignore this email. If you need further assistance, feel free to contact our support team.
+
+Best regards,
+The Personal Finance Tracker Team
+`, // Plain text body
+            html: `
+    <p>Dear ${user.username},</p>
+    <p>We received a request to reset your password for your <strong>Personal Finance Tracker</strong> account.</p>
+    <p>Your new password is: <strong>${newPassword}</strong></p>
+    <p>Please use this password to log in to your account. We recommend changing your password after you log in to something more memorable and secure.</p>
+    <p>If you did not request a password reset, please ignore this email. If you need further assistance, feel free to contact our support team.</p>
+    <p>Best regards,<br>The Personal Finance Tracker Team</p>
+    ` // HTML body
         };
 
+        // Send the email
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                return console.log(error);
+                console.error('Error sending email:', error);
+                return res.status(500).json({ message: 'Error sending email' });
             }
-            console.log('Email sent: ' + info.response);
+            console.log('Email sent:', info.response);
+            res.status(200).json({ message: 'New password has been sent to your email.' });
         });
-
-        res.status(200).json({ message: 'New password has been sent to your email.' });
 
     } catch (error) {
         console.error('Error resetting password:', error);
         res.status(500).json({ message: 'Error resetting password' });
     }
 };
+
 
 module.exports = {
     addUser,

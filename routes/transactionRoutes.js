@@ -5,7 +5,7 @@ const transactionController = require('../controller/transactionController.js');
 const { authorizeUser } = require('../auth/authenticate.js');
 
 //transactions
-router.post('/add', transactionController.createTransaction);
+router.post('/add', checkToken,authorizeUser,transactionController.createTransaction);
 router.get('/transactions/:id',checkToken,authorizeUser, transactionController.getUserTransactions);
 router.delete('/transactions/:id', transactionController.deleteTransaction);
 
