@@ -41,7 +41,8 @@ const handleSaving = async (userId, amount) => {
 
 // Create a new transaction
 const createTransaction = async (req, res) => {
-  const { description, amount, type, category, userId } = req.body;
+    let userId = req.params.id;
+  const { description, amount, type, category } = req.body;
   try {
       let netBalance = await db.netBalances.findOne({ where: { userId } });
 
