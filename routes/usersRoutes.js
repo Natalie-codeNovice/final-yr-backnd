@@ -5,7 +5,7 @@ const { authorizeUser } = require('../auth/authenticate.js');
 const router = require('express').Router()
 router.post('/signup', userController.addUser)
 router.post('/login', userController.loginUser)
-
+router.post('/forgot-password',userController.forgotPassword)
 
 router.get('/:id',checkToken,authorizeUser, userController.getOneUser)
 router.put('/:id',checkToken,authorizeUser, userController.updateUser)

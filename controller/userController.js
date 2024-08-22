@@ -2,6 +2,8 @@ const db = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto'); 
 
 // create main model
 const User = db.users;
@@ -232,6 +234,59 @@ const updatePassword = async (req, res) => {
         res.status(500).json({ message: 'Error updating password' });
     }
 };
+// Forgot password function
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // Find the user by email
+        const user = await User.findOne({ where: { email } });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Generate a new random password
+        const newPassword = crypto.randomBytes(3).toString('hex'); // Generates a 16-character password
+
+        // Hash the new password
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update the user's password in the database
+        user.password = hashedNewPassword;
+        await user.save();
+
+        // Send the new password to the user's email
+        let transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'paccyhabi@gmail.com',
+                pass: 'fixz dwsw iece fbmh'
+            }
+        });
+
+        let mailOptions = {
+            from: 'paccyhabi@gmail.com', // Sender address
+            to: user.email,               // List of recipients
+            subject: 'Your New Password', // Subject line
+            text: `Your new password is: ${newPassword}`,  // Plain text body
+            html: `<b>Your new password is: ${newPassword}</b>` // HTML body
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                return console.log(error);
+            }
+            console.log('Email sent: ' + info.response);
+        });
+
+        res.status(200).json({ message: 'New password has been sent to your email.' });
+
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({ message: 'Error resetting password' });
+    }
+};
 
 module.exports = {
     addUser,
@@ -239,6 +294,6 @@ module.exports = {
     getOneUser,
     updateUser,
     deleteUser,
-    updatePassword, // Export the new function
+    updatePassword,
+    forgotPassword
 };
-
