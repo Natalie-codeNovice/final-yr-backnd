@@ -74,9 +74,9 @@ const addUser = async (req, res) => {
 // login user and generate JWT token
 const loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { username, password } = req.body;
         // Find the user by their username
-        const user = await User.findOne({ where: { email } });
+        const user = await User.findOne({ where: { username } });
 
         if (!user) {
             res.status(400).json({ message: 'Invalid credentials' });
