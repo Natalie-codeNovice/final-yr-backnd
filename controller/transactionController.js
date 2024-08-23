@@ -23,26 +23,25 @@ const handleExpense = async (userId, amount) => {
 };
 
 // Function to handle saving transaction
-const handleSaving = async (userId, amount) => {
-  let netBalance = await db.netBalances.findOne({ where: { userId } });
-  if (netBalance) {
+const handleSaving = async (userId, amount, transactionId, usageDate) => {
+    let netBalance = await db.netBalances.findOne({ where: { userId } });
+    if (netBalance) {
       netBalance.balance -= parseFloat(amount);
       await netBalance.save();
 
-      let saving = await db.savings.findOne({ where: { userId } });
-      if (!saving) {
-          saving = await db.savings.create({ amount, userId });
-      } else {
-          saving.amount += parseFloat(amount);
-          await saving.save();
-      }
-  }
-};
+      await db.savings.create({
+        amount,
+        usageDate, 
+        transactionId
+      });
+    }
+  };
+  
 
 // Create a new transaction
 const createTransaction = async (req, res) => {
     let userId = req.params.id;
-  const { description, amount, type, category } = req.body;
+  const { description, amount, type, category, usageDate } = req.body;
   try {
       let netBalance = await db.netBalances.findOne({ where: { userId } });
 
@@ -88,12 +87,13 @@ const createTransaction = async (req, res) => {
                   category,
                   userId
               });
-              await handleSaving(userId, amount);
+              await handleSaving(userId, amount, transaction.id, usageDate);
               res.status(201).json({ message: 'Transaction added successfully', transaction });
           }
       }
 
   } catch (error) {
+        console.error('Error adding transaction:', error); // Log the error details
       res.status(500).json({ message: 'Error adding transaction', error });
   }
 };

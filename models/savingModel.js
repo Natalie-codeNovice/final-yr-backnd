@@ -1,9 +1,17 @@
 module.exports = (sequelize, DataTypes) => {
     const Saving = sequelize.define('savings', {
-        amount: {
-          type: DataTypes.FLOAT,
-          allowNull: false,
-        },
+      usageDate: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },  
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },   
+      isUsed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue:false
+    },           
       });
   
     return Saving;
