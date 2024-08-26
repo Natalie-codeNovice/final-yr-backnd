@@ -14,7 +14,7 @@ const getExpenses = async (req, res) => {
         const totalExpenses = expenses.reduce((sum, transaction) => sum + parseFloat(transaction.amount), 0);
 
         // Format totalExpenses as a currency string
-        const formattedTotalExpenses = totalExpenses.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        const formattedTotalExpenses = totalExpenses;
 
         if (expenses.length === 0) {
             return res.status(404).json({ message: 'No expenses found', totalExpenses: formattedTotalExpenses });

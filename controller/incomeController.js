@@ -17,7 +17,7 @@ const getIncome = async (req, res) => {
 
     // Calculate the total sum of income
     const totalIncome = income.reduce((sum, transaction) => sum + parseFloat(transaction.amount), 0);
-    const formattedTotalIncome = totalIncome.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const formattedTotalIncome = totalIncome;
 
     if (income.length === 0) {
       return res.status(404).json({ message: 'No income found', totalIncome: formattedTotalIncome });

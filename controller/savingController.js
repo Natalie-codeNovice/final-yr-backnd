@@ -22,7 +22,7 @@ const getSavings = async (req, res) => {
     }
 
     const totalSavings = savings.reduce((sum, saving) => sum + parseFloat(saving.amount), 0);
-    const formattedTotalSavings = totalSavings.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const formattedTotalSavings = totalSavings;
 
     res.status(200).json({ savings, totalSavings: formattedTotalSavings });
   } catch (error) {

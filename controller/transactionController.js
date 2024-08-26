@@ -172,8 +172,8 @@ const generateDailyReport = async (req, res) => {
 const generateWeeklyReport = async (req, res) => {
     const userId = req.params.id;
     const today = new Date();
-    const dayOfWeek = today.getDay(); // Get the current day of the week (0-6, where 0 is Sunday)
-    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1); // Calculate difference to Monday
+    const dayOfWeek = today.getDay(); 
+    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1); 
     const firstDayOfWeek = new Date(today.setDate(today.getDate() - diffToMonday));
     firstDayOfWeek.setHours(0, 0, 0, 0);
     const lastDayOfWeek = new Date(firstDayOfWeek);
