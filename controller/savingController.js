@@ -18,7 +18,7 @@ const getSavings = async (req, res) => {
 
     // Check if savings were found
     if (!savings.length) {
-      return res.status(404).json({ message: 'No savings found' });
+      return res.status(404).json({ totalSavings: 0 });
     }
 
     const totalSavings = savings.reduce((sum, saving) => sum + parseFloat(saving.amount), 0);
@@ -31,6 +31,22 @@ const getSavings = async (req, res) => {
   }
 };
 
+const useSaving = async (req, res) => {
+  try {
+    const savingId = req.params.id;
+    const saving = await db.savings.findByPk(savingId);
+    if (!saving) {
+      return res.status(404).json({ message: 'Saving not found' });
+    }
+    saving.isUsed = true;
+    await saving.save();
+    return res.status(200).json({ message: 'Saving has been marked as used', saving });
+  } catch (error) {
+    console.error('Error in useSaving:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
 module.exports = {
-  getSavings
+  getSavings,
+  useSaving
 };
