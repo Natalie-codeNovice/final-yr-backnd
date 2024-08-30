@@ -9,6 +9,35 @@ const jwtSecret = process.env.JWT_SECRET;
 const User = db.users;
 
 // main work
+
+// Set up email transport
+// const transporter = nodemailer.createTransport({
+//     service: 'gmail',
+//     auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.USER_PASS
+//     }
+// });
+
+// Send notification email
+// const sendNotificationEmail = (user, subject, text, html) => {
+//     let mailOptions = {
+//         from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+//         to: user.email,
+//         subject: subject,
+//         text: text,
+//         html: html
+//     };
+
+//     transporter.sendMail(mailOptions, (error, info) => {
+//         if (error) {
+//             console.error('Error sending email:', error);
+//         } else {
+//             console.log('Email sent:', info.response);
+//         }
+//     });
+// };
+
 // 1. create user
 const addUser = async (req, res) => {
     try {
@@ -87,7 +116,13 @@ const loginUser = async (req, res) => {
         if (bcrypt.compareSync(password, user.password)) {
             // Passwords match, generate a JWT token using your actual secret key
             const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '1h' });
-
+            // Send login notification email
+            // sendNotificationEmail(
+            //     user,
+            //     'Login Notification',
+            //     `Dear ${user.username},\n\nYou have successfully logged in to your Personal Finance Tracker account.\n\nIf this wasn't you, please change your password immediately.`,
+            //     `<p>Dear ${user.username},</p><p>You have successfully logged in to your <strong>Personal Finance Tracker</strong> account.</p><p>If this wasn't you, please change your password immediately.</p>`
+            // );
             return res
                 .cookie("access_token", token, {
                     httpOnly: true,
@@ -104,6 +139,13 @@ const loginUser = async (req, res) => {
                 });
 
         } else {
+            // Send incorrect password notification email
+            // sendNotificationEmail(
+            //     user,
+            //     'Failed Login Attempt Notification',
+            //     `Dear ${user.username},\n\nThere was an unsuccessful attempt to log in to your Personal Finance Tracker account with an incorrect password.\n\nIf this wasn't you, please ensure your account is secure.`,
+            //     `<p>Dear ${user.username},</p><p>There was an unsuccessful attempt to log in to your <strong>Personal Finance Tracker</strong> account with an incorrect password.</p><p>If this wasn't you, please ensure your account is secure.</p>`
+            // );            
             res.status(401).json({ message: 'Invalid credentials' });
         }
     } catch (error) {
@@ -234,7 +276,7 @@ const updatePassword = async (req, res) => {
         res.status(500).json({ message: 'Error updating password' });
     }
 };
-// Forgot password function
+//forgot password
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
@@ -256,21 +298,11 @@ const forgotPassword = async (req, res) => {
         user.password = hashedNewPassword;
         await user.save();
 
-        // Set up email transport
-        let transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.USER_PASS
-            }
-        });
-
-        // Email options
-        let mailOptions = {
-            from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
-            to: user.email, 
-            subject: 'Your New Password for Personal Finance Tracker',
-            text: `Dear ${user.username},
+        // Send the password reset email
+        sendNotificationEmail(
+            user,
+            'Your New Password for Personal Finance Tracker',
+            `Dear ${user.username},
 
 We received a request to reset your password for your Personal Finance Tracker account.
 
@@ -282,32 +314,25 @@ If you did not request a password reset, please ignore this email. If you need f
 
 Best regards,
 The Personal Finance Tracker Team
-`, // Plain text body
-            html: `
+`,
+            `
     <p>Dear ${user.username},</p>
     <p>We received a request to reset your password for your <strong>Personal Finance Tracker</strong> account.</p>
     <p>Your new password is: <strong>${newPassword}</strong></p>
     <p>Please use this password to log in to your account. We recommend changing your password after you log in to something more memorable and secure.</p>
     <p>If you did not request a password reset, please ignore this email. If you need further assistance, feel free to contact our support team.</p>
     <p>Best regards,<br>The Personal Finance Tracker Team</p>
-    ` // HTML body
-        };
+    `
+        );
 
-        // Send the email
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error sending email:', error);
-                return res.status(500).json({ message: 'Error sending email' });
-            }
-            console.log('Email sent:', info.response);
-            res.status(200).json({ message: 'New password has been sent to your email.' });
-        });
+        res.status(200).json({ message: 'New password has been sent to your email.' });
 
     } catch (error) {
         console.error('Error resetting password:', error);
         res.status(500).json({ message: 'Error resetting password' });
     }
 };
+
 
 
 module.exports = {

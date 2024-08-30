@@ -1,26 +1,111 @@
 const db = require('../models');
+const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
-// Function to handle income transaction
-const handleIncome = async (userId, amount) => {
-  let netBalance = await db.netBalances.findOne({ where: { userId } });
-  if (!netBalance) {
-      netBalance = await db.netBalances.create({ balance: amount, userId });
-  } else {
-      netBalance.balance += parseFloat(amount);
-      await netBalance.save();
-  }
+
+// Set up email transport
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.USER_PASS
+    }
+});
+
+// Send notification email
+const sendNotificationEmail = (user, subject, text, html) => {
+    let mailOptions = {
+        from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+        to: user.email,
+        subject: subject,
+        text: text,
+        html: html
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.error('Error sending email:', error);
+        } else {
+            console.log('Email sent:', info.response);
+        }
+    });
 };
 
-// Function to handle expense transaction
-const handleExpense = async (userId, amount) => {
-  let netBalance = await db.netBalances.findOne({ where: { userId } });
-  if (!netBalance) {
-      return false;
-  } else {
-      netBalance.balance -= parseFloat(amount);
-      await netBalance.save();
-  }
+const handleExpense = async (res, userId, amount, categoryName) => {
+    let netBalance = await db.netBalances.findOne({ where: { userId } });
+    if (netBalance) {
+        let category = await db.categories.findOne({ 
+            where: { 
+                categoryName, 
+                userId,  
+                isValid: true 
+            } 
+        });
+    let user = await db.users.findOne({where: {id:userId}});    
+        if (category) {
+            const parsedAmount = parseFloat(amount);
+            if (parsedAmount > parseFloat(category.remainedAmount)) {
+                return res.status(403).json({ message: "Exceeded limit" }); // Return immediately to prevent further processing
+            }
+            let usageAmount = parseFloat(category.usageAmount);
+            usageAmount += parsedAmount;
+            category.usageAmount = usageAmount;
+            category.remainedAmount -= parsedAmount;
+            const limitAmount = parseFloat(category.limitAmount);
+            await category.save();
+            
+            let percentage = (usageAmount * 100) / limitAmount;
+            let subject = "";
+            let text = "";
+
+            // Log the percentage at 50%, 80%, and 100% thresholds only once
+            if (percentage >= 50 && percentage < 80 && !category.logged50) {
+                subject = "Usage Alert: 50% of Your Budget Reached";
+                text = `You have used ${percentage}% of your budget for ${category.categoryName}. Your limit is ${category.limitAmount}RWF and you have used ${category.usageAmount}RWF. Please review your expenses to ensure they align with your financial goals.`;
+                category.logged50 = true; // Mark as logged
+            } else if (percentage >= 80 && percentage < 100 && !category.logged80) {
+                subject = "Urgent Alert: 80% of Your Budget Reached";
+                text = `You have used ${percentage}% of your budget for ${category.categoryName}. Your limit is ${category.limitAmount}RWF and you have used ${category.usageAmount}RWF.  Consider revising your spending to avoid exceeding your limit.`;
+                category.logged80 = true; // Mark as logged
+            } else if (percentage === 100 && !category.logged100) {
+                subject = "Critical Alert: 100% of Your Budget Used";
+                text = `You have reached 100% of your budget for ${category.categoryName}. No more funds are available in this category. Please adjust your spending immediately.`;
+                category.logged100 = true; // Mark as logged
+            }
+
+            await category.save();
+
+            // Send notification email
+            if(subject){
+                sendNotificationEmail(
+                    user,
+                    subject,
+                    `Dear ${user.username}, ${text}`,
+                    `<p>Dear ${user.username},</p><p>${text}</p>`
+                );
+            }
+
+            
+            
+            
+        }
+        netBalance.balance -= parseFloat(amount);
+        await netBalance.save();
+    }
+    return true;
 };
+
+
+// Function to handle income transaction
+const handleIncome = async (userId, amount) => {
+    let netBalance = await db.netBalances.findOne({ where: { userId } });
+    if (!netBalance) {
+        netBalance = await db.netBalances.create({ balance: amount, userId });
+    } else {
+        netBalance.balance += parseFloat(amount);
+        await netBalance.save();
+    }
+  };
+
 
 // Function to handle saving transaction
 const handleSaving = async (userId, amount, transactionId, usageDate) => {
@@ -35,8 +120,7 @@ const handleSaving = async (userId, amount, transactionId, usageDate) => {
         transactionId
       });
     }
-  };
-  
+  };  
 
 // Create a new transaction
 const createTransaction = async (req, res) => {
@@ -58,23 +142,30 @@ const createTransaction = async (req, res) => {
           res.status(201).json({ message: 'Transaction added successfully', transaction });
 
       } else if (type === 'expense') {
-          if (!netBalance) {
-              res.status(200).json({ message: "Add income first" });
-          } else if (netBalance.balance < parseFloat(amount)) {
-              res.status(200).json({ message: "Insufficient Balance" });
-          } else {
-              const transaction = await db.transactions.create({
-                  description,
-                  amount,
-                  type,
-                  category,
-                  userId
-              });
-              await handleExpense(userId, amount);
-              res.status(201).json({ message: 'Transaction added successfully', transaction });
-          }
+        if (!netBalance) {
+            return res.status(200).json({ message: "Add income first" });
+        } else if (netBalance.balance < parseFloat(amount)) {
+            return res.status(200).json({ message: "Insufficient Balance" });
+        } else {
+            // Validate and handle the expense before saving the transaction
+            const expenseHandled = await handleExpense(res, userId, amount, category);
+            if (expenseHandled !== true) {
+                return; // If the expense was not handled (e.g., limit exceeded), return early
+            }
 
-      } else if (type === 'saving') {
+            // Now that the expense is validated, create the transaction
+            const transaction = await db.transactions.create({
+                description,
+                amount,
+                type,
+                category,
+                userId
+            });
+
+            res.status(201).json({ message: 'Transaction added successfully', transaction });
+        }
+
+    } else if (type === 'saving') {
           if (!netBalance) {
               res.status(200).json({ message: "Add income first" });
           } else if (netBalance.balance < parseFloat(amount)) {

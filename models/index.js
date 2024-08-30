@@ -30,6 +30,7 @@ db.users = require('./userModel.js')(sequelize, DataTypes);
 db.transactions = require('./transactionModel.js')(sequelize, DataTypes);
 db.netBalances = require('./netBalanceModel.js')(sequelize, DataTypes);
 db.savings = require('./savingModel.js')(sequelize, DataTypes);
+db.categories = require('./categoryModel.js')(sequelize, DataTypes);
 
 // Associations
 db.users.hasMany(db.transactions, {
@@ -40,6 +41,17 @@ db.transactions.belongsTo(db.users, {
     foreignKey: 'userId',
     as: 'user'
 });
+
+
+db.users.hasMany(db.categories, {
+    foreignKey: 'userId',
+    as: 'categories'
+});
+db.categories.belongsTo(db.users, {
+    foreignKey: 'userId',
+    as: 'user'
+});
+
 
 db.users.hasOne(db.netBalances, {
     foreignKey: 'userId',
