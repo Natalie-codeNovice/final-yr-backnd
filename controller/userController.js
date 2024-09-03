@@ -87,7 +87,7 @@ const addUser = async (req, res) => {
         });
 
         // Send verification email
-        const verificationLink = `https://yourdomain.com/verify-email?token=${verificationToken}`;
+        const verificationLink = `https://finance-zgvt.onrender.com/verify-email?token=${verificationToken}`;
         const emailContent = `
             <p>Dear ${user.username},</p>
             <p>Thank you for registering on our platform. Please click the link below to verify your email address:</p>
@@ -142,18 +142,24 @@ const verifyEmail = async (req, res) => {
 const loginUser = async (req, res) => {
     try {
         const { username, password } = req.body;
+
         // Find the user by their username
         const user = await User.findOne({ where: { username } });
 
         if (!user) {
-            res.status(400).json({ message: 'Invalid credentials' });
-            return;
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Check if the user's email is verified
+        if (!user.isVerified) {
+            return res.status(403).json({ message: 'Please verify your email before logging in.' });
         }
 
         // Compare the provided password with the hashed password in the database
         if (bcrypt.compareSync(password, user.password)) {
             // Passwords match, generate a JWT token using your actual secret key
             const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '1h' });
+
             // Send login notification email
             sendNotificationEmail(
                 user,
@@ -161,6 +167,7 @@ const loginUser = async (req, res) => {
                 `Dear ${user.username},\n\nYou have successfully logged in to your Personal Finance Tracker account.\n\nIf this wasn't you, please change your password immediately.`,
                 `<p>Dear ${user.username},</p><p>You have successfully logged in to your <strong>Personal Finance Tracker</strong> account.</p><p>If this wasn't you, please change your password immediately.</p>`
             );
+
             return res
                 .cookie("access_token", token, {
                     httpOnly: true,
@@ -184,12 +191,14 @@ const loginUser = async (req, res) => {
                 `Dear ${user.username},\n\nThere was an unsuccessful attempt to log in to your Personal Finance Tracker account with an incorrect password.\n\nIf this wasn't you, please ensure your account is secure.`,
                 `<p>Dear ${user.username},</p><p>There was an unsuccessful attempt to log in to your <strong>Personal Finance Tracker</strong> account with an incorrect password.</p><p>If this wasn't you, please ensure your account is secure.</p>`
             );            
-            res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
     } catch (error) {
-        res.status(500).json({ message: 'Login failed' });
+        console.error('Error logging in user:', error);
+        return res.status(500).json({ message: 'Login failed due to an unexpected error.' });
     }
 };
+
 
 // get Single User
 const getOneUser = async (req, res) => {
