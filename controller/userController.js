@@ -4,7 +4,6 @@ const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto'); 
-const path = require('path');
 const jwtSecret = process.env.JWT_SECRET;
 // create main model
 const User = db.users;
@@ -131,7 +130,7 @@ const verifyEmail = async (req, res) => {
         user.verificationToken = null;
         await user.save();
 
-        res.status(200).sendFile(path.join(__dirname, 'public', 'emailVerified.html'));
+        return res.redirect('/emailVerified.html');
     } catch (error) {
         console.error('Error verifying email:', error);
         res.status(500).json({ message: 'Error verifying email' });
