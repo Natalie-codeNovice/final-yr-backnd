@@ -52,7 +52,7 @@ const getAllLimits = async (req, res) => {
     });
 
     if (validCategories.length === 0) {
-      return res.status(404).json({ message: 'No valid limits found for this user.' });
+      return res.status(404).json({ message: 'No valid limits found for this you.' });
     }
 
     // Calculate the usage percentage for each category

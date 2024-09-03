@@ -10,33 +10,33 @@ const User = db.users;
 
 // main work
 
-// Set up email transport
-// const transporter = nodemailer.createTransport({
-//     service: 'gmail',
-//     auth: {
-//         user: process.env.EMAIL_USER,
-//         pass: process.env.USER_PASS
-//     }
-// });
+//Set up email transport
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.USER_PASS
+    }
+});
 
 // Send notification email
-// const sendNotificationEmail = (user, subject, text, html) => {
-//     let mailOptions = {
-//         from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
-//         to: user.email,
-//         subject: subject,
-//         text: text,
-//         html: html
-//     };
+const sendNotificationEmail = (user, subject, text, html) => {
+    let mailOptions = {
+        from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+        to: user.email,
+        subject: subject,
+        text: text,
+        html: html
+    };
 
-//     transporter.sendMail(mailOptions, (error, info) => {
-//         if (error) {
-//             console.error('Error sending email:', error);
-//         } else {
-//             console.log('Email sent:', info.response);
-//         }
-//     });
-// };
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.error('Error sending email:', error);
+        } else {
+            console.log('Email sent:', info.response);
+        }
+    });
+};
 
 // 1. create user
 const addUser = async (req, res) => {
@@ -74,17 +74,31 @@ const addUser = async (req, res) => {
         // Hash the password before saving it to the database
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create the user
+        // Generate a unique verification token
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+
+        // Create the user with verification status and token
         const user = await User.create({
             username,
             email,
             password: hashedPassword,
-            phoneNumber
+            phoneNumber,
+            verificationToken
         });
 
+        // Send verification email
+        const verificationLink = `https://yourdomain.com/verify-email?token=${verificationToken}`;
+        const emailContent = `
+            <p>Dear ${user.username},</p>
+            <p>Thank you for registering on our platform. Please click the link below to verify your email address:</p>
+            <p><a href="${verificationLink}">Verify Email</a></p>
+            <p>If you did not register, please ignore this email.</p>
+        `;
+        sendNotificationEmail(user, 'Email Verification', 'Please verify your email address', emailContent);
+
         res.status(201).json({
-            message: 'User created successfully!',
-            user
+            message: 'User created successfully! Please check your email to verify your account.',
+            user: { id: user.id, username: user.username, email: user.email, phoneNumber: user.phoneNumber }
         });
     } catch (error) {
         console.error("Error creating user:", error);
@@ -99,6 +113,30 @@ const addUser = async (req, res) => {
         res.status(500).json({ message: 'User creation failed due to an unexpected error.' });
     }
 };
+
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        // Find the user by the verification token
+        const user = await User.findOne({ where: { verificationToken: token } });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid verification token.' });
+        }
+
+        // Verify the user's email and clear the verification token
+        user.isVerified = true;
+        user.verificationToken = null;
+        await user.save();
+
+        res.status(200).json({ message: 'Email verified successfully!' });
+    } catch (error) {
+        console.error('Error verifying email:', error);
+        res.status(500).json({ message: 'Error verifying email' });
+    }
+};
+
 
 // login user and generate JWT token
 const loginUser = async (req, res) => {
@@ -117,12 +155,12 @@ const loginUser = async (req, res) => {
             // Passwords match, generate a JWT token using your actual secret key
             const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '1h' });
             // Send login notification email
-            // sendNotificationEmail(
-            //     user,
-            //     'Login Notification',
-            //     `Dear ${user.username},\n\nYou have successfully logged in to your Personal Finance Tracker account.\n\nIf this wasn't you, please change your password immediately.`,
-            //     `<p>Dear ${user.username},</p><p>You have successfully logged in to your <strong>Personal Finance Tracker</strong> account.</p><p>If this wasn't you, please change your password immediately.</p>`
-            // );
+            sendNotificationEmail(
+                user,
+                'Login Notification',
+                `Dear ${user.username},\n\nYou have successfully logged in to your Personal Finance Tracker account.\n\nIf this wasn't you, please change your password immediately.`,
+                `<p>Dear ${user.username},</p><p>You have successfully logged in to your <strong>Personal Finance Tracker</strong> account.</p><p>If this wasn't you, please change your password immediately.</p>`
+            );
             return res
                 .cookie("access_token", token, {
                     httpOnly: true,
@@ -140,12 +178,12 @@ const loginUser = async (req, res) => {
 
         } else {
             // Send incorrect password notification email
-            // sendNotificationEmail(
-            //     user,
-            //     'Failed Login Attempt Notification',
-            //     `Dear ${user.username},\n\nThere was an unsuccessful attempt to log in to your Personal Finance Tracker account with an incorrect password.\n\nIf this wasn't you, please ensure your account is secure.`,
-            //     `<p>Dear ${user.username},</p><p>There was an unsuccessful attempt to log in to your <strong>Personal Finance Tracker</strong> account with an incorrect password.</p><p>If this wasn't you, please ensure your account is secure.</p>`
-            // );            
+            sendNotificationEmail(
+                user,
+                'Failed Login Attempt Notification',
+                `Dear ${user.username},\n\nThere was an unsuccessful attempt to log in to your Personal Finance Tracker account with an incorrect password.\n\nIf this wasn't you, please ensure your account is secure.`,
+                `<p>Dear ${user.username},</p><p>There was an unsuccessful attempt to log in to your <strong>Personal Finance Tracker</strong> account with an incorrect password.</p><p>If this wasn't you, please ensure your account is secure.</p>`
+            );            
             res.status(401).json({ message: 'Invalid credentials' });
         }
     } catch (error) {
@@ -342,5 +380,6 @@ module.exports = {
     updateUser,
     deleteUser,
     updatePassword,
-    forgotPassword
+    forgotPassword,
+    verifyEmail
 };

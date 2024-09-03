@@ -13,6 +13,6 @@ router.delete('/transactions/:id', transactionController.deleteTransaction);
 router.get('/day-report/:id',checkToken,authorizeUser, transactionController.generateDailyReport);
 router.get('/week-report/:id', checkToken,authorizeUser,transactionController.generateWeeklyReport);
 router.get('/month-report/:id',checkToken,authorizeUser, transactionController.generateMonthlyReport);
-router.get('/custom/:id', checkToken,authorizeUser,transactionController.generateCustomReportWithNetBalance);
+router.post('/custom/:id', checkToken,authorizeUser,transactionController.generateCustomReportWithNetBalance);
 
 module.exports = router;
