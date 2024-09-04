@@ -225,7 +225,7 @@ const deleteTransaction = async (req, res) => {
 
 
 // Function to generate daily report for the current day
-const generateDailyReport = async (req, res) => {
+const generateDailyTransactionsReport = async (req, res) => {
     const userId = req.params.id;
     const today = new Date();
     const dayStart = new Date(today.setHours(0, 0, 0, 0));
@@ -260,7 +260,7 @@ const generateDailyReport = async (req, res) => {
     }
 };
 
-const generateWeeklyReport = async (req, res) => {
+const generateWeeklyTransactionsReport = async (req, res) => {
     const userId = req.params.id;
     const today = new Date();
     const dayOfWeek = today.getDay(); 
@@ -302,7 +302,7 @@ const generateWeeklyReport = async (req, res) => {
 
 
 // Function to generate monthly report for the current month
-const generateMonthlyReport = async (req, res) => {
+const generateMonthlyTransactionsReport = async (req, res) => {
     const userId = req.params.id;
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -341,7 +341,7 @@ const generateMonthlyReport = async (req, res) => {
 
 
 // Function to generate customizable report for a specified date range and net balance within the range
-const generateCustomReportWithNetBalance = async (req, res) => {
+const generateCustomTransactionsReportWithNetBalance = async (req, res) => {
     const userId = req.params.id;
     const { startDate, endDate } = req.body;
 
@@ -384,13 +384,115 @@ const generateCustomReportWithNetBalance = async (req, res) => {
     }
 };
 
+// Function to generate weekly report with daily breakdown
+const generateWeeklyReport = async (req, res) => {
+    const userId = req.params.id;
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+    const firstDayOfWeek = new Date(today.setDate(today.getDate() - diffToMonday));
+    firstDayOfWeek.setHours(0, 0, 0, 0);
+
+    const dailyBreakdown = [];
+
+    try {
+        for (let i = 0; i < 7; i++) {
+            const startOfDay = new Date(firstDayOfWeek);
+            startOfDay.setDate(firstDayOfWeek.getDate() + i);
+            startOfDay.setHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(startOfDay);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const transactions = await db.transactions.findAll({
+                where: {
+                    userId,
+                    createdAt: {
+                        [Op.gte]: startOfDay,
+                        [Op.lte]: endOfDay
+                    }
+                }
+            });
+
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+            dailyBreakdown.push({
+                day: startOfDay.toDateString(), // or use a more readable format
+                totalIncome,
+                totalSavings,
+                totalExpenses
+            });
+        }
+
+        res.status(200).json(dailyBreakdown);
+    } catch (error) {
+        console.error('Error generating weekly report:', error);
+        res.status(500).json({ message: 'Error generating weekly report', error });
+    }
+};
+
+// Function to generate monthly report with weekly breakdown
+const generateMonthlyReport = async (req, res) => {
+    const userId = req.params.id;
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    firstDayOfMonth.setHours(0, 0, 0, 0);
+
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    lastDayOfMonth.setHours(23, 59, 59, 999);
+
+    const weeklyBreakdown = [];
+
+    try {
+        let startOfWeek = new Date(firstDayOfMonth);
+
+        while (startOfWeek <= lastDayOfMonth) {
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+
+            const transactions = await db.transactions.findAll({
+                where: {
+                    userId,
+                    createdAt: {
+                        [Op.gte]: startOfWeek,
+                        [Op.lte]: endOfWeek
+                    }
+                }
+            });
+
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+            weeklyBreakdown.push({
+                week: `${startOfWeek.toDateString()} - ${endOfWeek.toDateString()}`,
+                totalIncome,
+                totalSavings,
+                totalExpenses
+            });
+
+            // Move to the next week
+            startOfWeek.setDate(startOfWeek.getDate() + 7);
+        }
+
+        res.status(200).json(weeklyBreakdown);
+    } catch (error) {
+        console.error('Error generating monthly report:', error);
+        res.status(500).json({ message: 'Error generating monthly report', error });
+    }
+};
 
 module.exports = {
     createTransaction,
     deleteTransaction,
     getUserTransactions,
-    generateDailyReport,
+    generateDailyTransactionsReport,
+    generateWeeklyTransactionsReport,
+    generateMonthlyTransactionsReport,
+    generateCustomTransactionsReportWithNetBalance,
     generateWeeklyReport,
-    generateMonthlyReport,
-    generateCustomReportWithNetBalance
+    generateMonthlyReport
 };

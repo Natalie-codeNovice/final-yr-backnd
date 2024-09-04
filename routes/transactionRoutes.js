@@ -10,9 +10,11 @@ router.get('/transactions/:id',checkToken,authorizeUser, transactionController.g
 router.delete('/transactions/:id', transactionController.deleteTransaction);
 
 //reports
-router.get('/day-report/:id',checkToken,authorizeUser, transactionController.generateDailyReport);
-router.get('/week-report/:id', checkToken,authorizeUser,transactionController.generateWeeklyReport);
-router.get('/month-report/:id',checkToken,authorizeUser, transactionController.generateMonthlyReport);
-router.post('/custom/:id', checkToken,authorizeUser,transactionController.generateCustomReportWithNetBalance);
+router.get('/day-report/:id',checkToken,authorizeUser, transactionController.generateDailyTransactionsReport);
+router.get('/week-report/:id', checkToken,authorizeUser,transactionController.generateWeeklyTransactionsReport);
+router.get('/week-chart/:id', checkToken,authorizeUser,transactionController.generateWeeklyReport);
+router.get('/month-report/:id',checkToken,authorizeUser, transactionController.generateMonthlyTransactionsReport);
+router.get('/month-chart/:id',checkToken,authorizeUser, transactionController.generateMonthlyReport);
+router.post('/custom/:id', checkToken,authorizeUser,transactionController.generateCustomTransactionsReportWithNetBalance);
 
 module.exports = router;

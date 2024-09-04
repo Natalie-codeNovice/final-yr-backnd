@@ -152,7 +152,7 @@ const loginUser = async (req, res) => {
 
         // Check if the user's email is verified
         if (!user.isVerified) {
-            return res.status(403).json({ message: 'Please verify your email before logging in.' });
+            return res.redirect('/emailVerified.html');
         }
 
         // Compare the provided password with the hashed password in the database
