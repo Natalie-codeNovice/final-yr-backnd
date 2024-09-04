@@ -394,6 +394,11 @@ const generateWeeklyReport = async (req, res) => {
     firstDayOfWeek.setHours(0, 0, 0, 0);
 
     const dailyBreakdown = [];
+    const categoryBreakdown = {
+        income: {},
+        savings: {},
+        expenses: {},
+    };
 
     try {
         for (let i = 0; i < 7; i++) {
@@ -414,19 +419,30 @@ const generateWeeklyReport = async (req, res) => {
                 }
             });
 
-            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => {
+                categoryBreakdown.income[t.category] = (categoryBreakdown.income[t.category] || 0) + parseFloat(t.amount);
+                return sum + parseFloat(t.amount);
+            }, 0);
+
+            const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => {
+                categoryBreakdown.savings[t.category] = (categoryBreakdown.savings[t.category] || 0) + parseFloat(t.amount);
+                return sum + parseFloat(t.amount);
+            }, 0);
+
+            const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => {
+                categoryBreakdown.expenses[t.category] = (categoryBreakdown.expenses[t.category] || 0) + parseFloat(t.amount);
+                return sum + parseFloat(t.amount);
+            }, 0);
 
             dailyBreakdown.push({
-                day: startOfDay.toDateString(), // or use a more readable format
+                day: startOfDay.toDateString(),
                 totalIncome,
                 totalSavings,
                 totalExpenses
             });
         }
 
-        res.status(200).json(dailyBreakdown);
+        res.status(200).json({ dailyBreakdown, categoryBreakdown });
     } catch (error) {
         console.error('Error generating weekly report:', error);
         res.status(500).json({ message: 'Error generating weekly report', error });
@@ -444,6 +460,11 @@ const generateMonthlyReport = async (req, res) => {
     lastDayOfMonth.setHours(23, 59, 59, 999);
 
     const weeklyBreakdown = [];
+    const categoryBreakdown = {
+        income: {},
+        savings: {},
+        expenses: {},
+    };
 
     try {
         let startOfWeek = new Date(firstDayOfMonth);
@@ -463,9 +484,20 @@ const generateMonthlyReport = async (req, res) => {
                 }
             });
 
-            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => {
+                categoryBreakdown.income[t.category] = (categoryBreakdown.income[t.category] || 0) + parseFloat(t.amount);
+                return sum + parseFloat(t.amount);
+            }, 0);
+
+            const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => {
+                categoryBreakdown.savings[t.category] = (categoryBreakdown.savings[t.category] || 0) + parseFloat(t.amount);
+                return sum + parseFloat(t.amount);
+            }, 0);
+
+            const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => {
+                categoryBreakdown.expenses[t.category] = (categoryBreakdown.expenses[t.category] || 0) + parseFloat(t.amount);
+                return sum + parseFloat(t.amount);
+            }, 0);
 
             weeklyBreakdown.push({
                 week: `${startOfWeek.toDateString()} - ${endOfWeek.toDateString()}`,
@@ -474,14 +506,74 @@ const generateMonthlyReport = async (req, res) => {
                 totalExpenses
             });
 
-            // Move to the next week
             startOfWeek.setDate(startOfWeek.getDate() + 7);
         }
 
-        res.status(200).json(weeklyBreakdown);
+        res.status(200).json({ weeklyBreakdown, categoryBreakdown });
     } catch (error) {
         console.error('Error generating monthly report:', error);
         res.status(500).json({ message: 'Error generating monthly report', error });
+    }
+};
+
+// Function to generate daily report
+const generateDayReport = async (req, res) => {
+    const userId = req.params.id;
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    try {
+        // Fetch transactions for the day
+        const transactions = await db.transactions.findAll({
+            where: {
+                userId,
+                createdAt: {
+                    [Op.between]: [startOfDay, endOfDay],
+                },
+            },
+        });
+
+        // Initialize report structure
+        const dailyBreakdown = {
+            totalIncome: 0,
+            totalSavings: 0,
+            totalExpenses: 0,
+            categoryBreakdown: {
+                income: {},
+                savings: {},
+                expenses: {},
+            },
+        };
+
+        // Process transactions to calculate totals and category breakdown
+        transactions.forEach(transaction => {
+            const { amount, type, category } = transaction;
+            const parsedAmount = parseFloat(amount);
+
+            switch (type) {
+                case 'income':
+                    dailyBreakdown.totalIncome += parsedAmount;
+                    dailyBreakdown.categoryBreakdown.income[category] = (dailyBreakdown.categoryBreakdown.income[category] || 0) + parsedAmount;
+                    break;
+                case 'saving':
+                    dailyBreakdown.totalSavings += parsedAmount;
+                    dailyBreakdown.categoryBreakdown.savings[category] = (dailyBreakdown.categoryBreakdown.savings[category] || 0) + parsedAmount;
+                    break;
+                case 'expense':
+                    dailyBreakdown.totalExpenses += parsedAmount;
+                    dailyBreakdown.categoryBreakdown.expenses[category] = (dailyBreakdown.categoryBreakdown.expenses[category] || 0) + parsedAmount;
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        // Send response with daily report
+        res.status(200).json(dailyBreakdown);
+    } catch (error) {
+        console.error('Error generating daily report:', error);
+        res.status(500).json({ message: 'Error generating daily report', error });
     }
 };
 
@@ -494,5 +586,6 @@ module.exports = {
     generateMonthlyTransactionsReport,
     generateCustomTransactionsReportWithNetBalance,
     generateWeeklyReport,
-    generateMonthlyReport
+    generateMonthlyReport,
+    generateDayReport
 };

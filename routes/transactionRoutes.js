@@ -11,6 +11,7 @@ router.delete('/transactions/:id', transactionController.deleteTransaction);
 
 //reports
 router.get('/day-report/:id',checkToken,authorizeUser, transactionController.generateDailyTransactionsReport);
+router.get('/dayly-report/:id',checkToken,authorizeUser, transactionController.generateDayReport);
 router.get('/week-report/:id', checkToken,authorizeUser,transactionController.generateWeeklyTransactionsReport);
 router.get('/week-chart/:id', checkToken,authorizeUser,transactionController.generateWeeklyReport);
 router.get('/month-report/:id',checkToken,authorizeUser, transactionController.generateMonthlyTransactionsReport);
