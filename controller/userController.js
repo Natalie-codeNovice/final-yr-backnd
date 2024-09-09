@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto'); 
+const emailExistence = require('email-existence');
 const jwtSecret = process.env.JWT_SECRET;
 // create main model
 const User = db.users;
@@ -38,6 +39,8 @@ const sendNotificationEmail = (user, subject, text, html) => {
     });
 };
 
+
+
 // 1. create user
 const addUser = async (req, res) => {
     try {
@@ -71,34 +74,41 @@ const addUser = async (req, res) => {
             }
         }
 
-        // Hash the password before saving it to the database
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Verify if the email address exists
+        emailExistence.check(email, async (err, response) => {
+            if (err || !response) {
+                return res.status(400).json({ message: 'Invalid email address. Please use a valid email.' });
+            }
 
-        // Generate a unique verification token
-        const verificationToken = crypto.randomBytes(32).toString('hex');
+            // Hash the password before saving it to the database
+            const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create the user with verification status and token
-        const user = await User.create({
-            username,
-            email,
-            password: hashedPassword,
-            phoneNumber,
-            verificationToken
-        });
+            // Generate a unique verification token
+            const verificationToken = crypto.randomBytes(32).toString('hex');
 
-        // Send verification email
-        const verificationLink = `https://finance-zgvt.onrender.com/verify-email?token=${verificationToken}`;
-        const emailContent = `
-            <p>Dear ${user.username},</p>
-            <p>Thank you for registering on our platform. Please click the link below to verify your email address:</p>
-            <p><a href="${verificationLink}">Verify Email</a></p>
-            <p>If you did not register, please ignore this email.</p>
-        `;
-        sendNotificationEmail(user, 'Email Verification', 'Please verify your email address', emailContent);
+            // Create the user with verification status and token
+            const user = await User.create({
+                username,
+                email,
+                password: hashedPassword,
+                phoneNumber,
+                verificationToken
+            });
 
-        res.status(201).json({
-            message: 'User created successfully! Please check your email to verify your account.',
-            user: { id: user.id, username: user.username, email: user.email, phoneNumber: user.phoneNumber }
+            // Send verification email
+            const verificationLink = `https://finance-zgvt.onrender.com/verify-email?token=${verificationToken}`;
+            const emailContent = `
+                <p>Dear ${user.username},</p>
+                <p>Thank you for registering on our platform. Please click the link below to verify your email address:</p>
+                <p><a href="${verificationLink}">Verify Email</a></p>
+                <p>If you did not register, please ignore this email.</p>
+            `;
+            sendNotificationEmail(user, 'Email Verification', 'Please verify your email address', emailContent);
+
+            res.status(201).json({
+                message: 'User created successfully! Please check your email to verify your account.',
+                user: { id: user.id, username: user.username, email: user.email, phoneNumber: user.phoneNumber }
+            });
         });
     } catch (error) {
         console.error("Error creating user:", error);
@@ -113,6 +123,8 @@ const addUser = async (req, res) => {
         res.status(500).json({ message: 'User creation failed due to an unexpected error.' });
     }
 };
+
+
 
 const verifyEmail = async (req, res) => {
     try {
@@ -152,7 +164,7 @@ const loginUser = async (req, res) => {
 
         // Check if the user's email is verified
         if (!user.isVerified) {
-            return res.redirect('/emailVerified.html');
+            return res.status(401).json({ message: 'Your email is not verified. Verify email first' });
         }
 
         // Compare the provided password with the hashed password in the database
