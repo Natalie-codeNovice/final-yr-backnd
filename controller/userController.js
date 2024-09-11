@@ -92,9 +92,12 @@ const addUser = async (req, res) => {
             <p>Dear ${user.username},</p>
             <p>Thank you for registering on our platform. Please click the link below to verify your email address:</p>
             <p><a href="${verificationLink}">Verify Email</a></p>
+            <p>If you have any issues or did not receive the verification email, you can email us directly for assistance:</p>
+            <p><a href="mailto:support@yourdomain.com?subject=Email Verification Assistance&body=Dear Support Team,%0A%0AI am having trouble verifying my email. Please assist me.%0A%0AThank you.">Contact Support</a></p>
             <p>If you did not register, please ignore this email.</p>
         `;
         sendNotificationEmail(user, 'Email Verification', 'Please verify your email address', emailContent);
+        
 
         res.status(201).json({
             message: 'User created successfully! Please check your email to verify your account.',
@@ -160,6 +163,10 @@ const loginUser = async (req, res) => {
             // Passwords match, generate a JWT token using your actual secret key
             const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '1h' });
 
+            await db.loginSessions.create({
+                userId: user.id,
+                loggedInAt: new Date()
+            });
             // Send login notification email
             sendNotificationEmail(
                 user,
@@ -167,7 +174,6 @@ const loginUser = async (req, res) => {
                 `Dear ${user.username},\n\nYou have successfully logged in to your Personal Finance Tracker account.\n\nIf this wasn't you, please change your password immediately.`,
                 `<p>Dear ${user.username},</p><p>You have successfully logged in to your <strong>Personal Finance Tracker</strong> account.</p><p>If this wasn't you, please change your password immediately.</p>`
             );
-
             return res
                 .cookie("access_token", token, {
                     httpOnly: true,
@@ -199,6 +205,29 @@ const loginUser = async (req, res) => {
     }
 };
 
+//logout
+// Logout user and clear JWT token
+const logoutUser = async (req, res) => {
+    try {
+        const { userId } = req.user;
+        await db.loginSessions.update(
+            { loggedOutAt: new Date() },
+            { where: { userId, loggedOutAt: null } } // Mark current session as logged out
+        );
+
+        // Clear the JWT token cookie
+        return res
+            .clearCookie("access_token", {
+                httpOnly: true,
+                secure: true
+            })
+            .status(200)
+            .json({ message: 'Logged out successfully' });
+    } catch (error) {
+        console.error('Error logging out user:', error);
+        return res.status(500).json({ message: 'Logout failed due to an unexpected error.' });
+    }
+};
 
 // get Single User
 const getOneUser = async (req, res) => {
@@ -390,5 +419,6 @@ module.exports = {
     deleteUser,
     updatePassword,
     forgotPassword,
-    verifyEmail
+    verifyEmail,
+    logoutUser
 };
