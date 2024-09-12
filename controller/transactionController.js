@@ -193,12 +193,26 @@ const createTransaction = async (req, res) => {
   // Retrieve transactions for a user
 const getUserTransactions = async (req, res) => {
     let userId = req.params.id;
+    const role = "user";
     try {
       if (!userId) {
         return res.status(400).json({ message: 'User ID is required' });
       }
-      const transactions = await db.transactions.findAll({ where: { userId } });
-      res.status(200).json(transactions);
+      const transactions = await db.transactions.findAll({ 
+        where: { userId} ,
+          attributes: ['id', 'description','amount','type', 'category','userId']
+    });
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const totalSavings = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const netBalance = totalIncome - (totalExpenses + totalSavings);    
+    res.status(200).json({
+        transactions,
+        totalIncome,
+        totalSavings,
+        totalExpenses,
+        netBalance
+    });
     } catch (error) {
       console.error('Error retrieving transactions:', error);
       res.status(500).json({ message: 'Error retrieving transactions', error: error.message || error });

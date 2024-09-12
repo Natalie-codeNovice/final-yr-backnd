@@ -18,4 +18,7 @@ router.get('/month-report/:id',checkToken,authorizeUser, transactionController.g
 router.get('/month-chart/:id',checkToken,authorizeUser, transactionController.generateMonthlyReport);
 router.post('/custom/:id', checkToken,authorizeUser,transactionController.generateCustomTransactionsReportWithNetBalance);
 
+
+//admin roles
+router.get('/users/transactions/:id',checkToken,transactionController.getUserTransactions);
 module.exports = router;

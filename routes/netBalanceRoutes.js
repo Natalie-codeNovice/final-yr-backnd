@@ -6,5 +6,7 @@ const { authorizeUser } = require('../auth/authenticate.js');
 
 router.get('/balance/:id',checkToken,authorizeUser, netBalanceController.getNetBalance );
 
+//admin roles
+router.get('/balance/:id',checkToken,netBalanceController.getNetBalance );
 
 module.exports = router;

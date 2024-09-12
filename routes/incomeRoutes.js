@@ -7,5 +7,6 @@ const { authorizeUser } = require('../auth/authenticate.js');
 
 router.get('/income/:id',checkToken,authorizeUser,incomeController.getIncome );
 
-
+//admin roles
+router.get('/users/income/:id',checkToken,incomeController.getIncome );
 module.exports = router;

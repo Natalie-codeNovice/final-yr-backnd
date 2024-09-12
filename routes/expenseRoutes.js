@@ -9,5 +9,6 @@ router.get('/expense/:id',checkToken,authorizeUser, expenseController.getExpense
 router.post('/limits/:id',checkToken,authorizeUser, addLimit );
 router.get('/limits/:id',checkToken,authorizeUser, getAllLimits );
 
-
+//admin roles
+router.get('/users/expense/:id',checkToken,expenseController.getExpenses );
 module.exports = router;

@@ -83,7 +83,7 @@ db.savings.belongsTo(db.transactions, {
 });
 
 // Sync Models
-db.sequelize.sync({ force: false })
+db.sequelize.sync({ force:false })
 .then(() => {
     console.log('Database synchronized successfully.');
 })

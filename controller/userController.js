@@ -42,7 +42,7 @@ const sendNotificationEmail = (user, subject, text, html) => {
 const addUser = async (req, res) => {
     try {
         const { username, email, password, phoneNumber } = req.body;
-
+        const role = "user";
         // Basic validation
         if (!username || !email || !password || !phoneNumber) {
             return res.status(400).json({ message: 'All fields are required.' });
@@ -81,6 +81,7 @@ const addUser = async (req, res) => {
         const user = await User.create({
             username,
             email,
+            role,
             password: hashedPassword,
             phoneNumber,
             verificationToken
