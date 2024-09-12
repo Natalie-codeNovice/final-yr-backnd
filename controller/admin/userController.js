@@ -5,7 +5,7 @@ const getAllUsers = async (req,res) => {
     try {
         let user = await User.findAll({
             where: {role},
-            attributes: ['username', 'email', 'phoneNumber','isVerified']
+            attributes: ['id','username', 'email', 'phoneNumber','isVerified']
         });
         if (user) {
             res.status(200).json(user);
