@@ -1,6 +1,34 @@
 const db = require('../../models');
+const nodemailer = require('nodemailer');
 const User = db.users;
-const role = 'user';
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.USER_PASS
+    }
+});
+
+// Send notification email
+const sendNotificationEmail = (user, subject, text, html) => {
+    let mailOptions = {
+        from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+        to: user.email,
+        subject: subject,
+        text: text,
+        html: html
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.error('Error sending email:', error);
+        } else {
+            console.log('Email sent:', info.response);
+        }
+    });
+};
+
 const getAllUsers = async (req,res) => {
     try {
         let user = await User.findAll({

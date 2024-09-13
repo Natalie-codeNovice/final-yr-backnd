@@ -2,7 +2,8 @@ const userController = require('../controller/userController.js')
 const {checkToken} = require('../auth/tokenValidation.js')
 const { authorizeUser } = require('../auth/authenticate.js');
 const { addUser } = require('../controller/admin/adminController.js');
-const adminRoles = require('../controller/admin/userController.js')
+const adminRoles = require('../controller/admin/userController.js');
+const { sendEmail } = require('../controller/admin/sendEmail.js');
 const router = require('express').Router()
 router.post('/signup', userController.addUser)
 router.post('/admin-signup', addUser)
@@ -22,6 +23,7 @@ router.get('/users/:id',checkToken,adminRoles.getOneUser)
 router.delete('/users/:id',checkToken,adminRoles.deleteUser)
 router.put('/users/:id',checkToken,adminRoles.updateUser)
 router.get('/user-sessions/:id',checkToken,adminRoles.getUserSessions)
+router.post('/email',sendEmail)
 
 
 module.exports = router
