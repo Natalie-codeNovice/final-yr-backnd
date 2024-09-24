@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 // Send notification email
 const sendNotificationEmail = (user, subject, text, html) => {
     let mailOptions = {
-        from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+        from: 'Personal financial monitoring <no-reply@personalfinancetracker.com>',
         to: user.email,
         subject: subject,
         text: text,
@@ -199,7 +199,9 @@ const getUserTransactions = async (req, res) => {
         return res.status(400).json({ message: 'User ID is required' });
       }
       const transactions = await db.transactions.findAll({ 
-        where: { userId} ,
+        where: { userId,
+            isCancelled: false,
+        } ,
           attributes: ['id', 'description','amount','type', 'category','userId']
     });
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
@@ -219,19 +221,78 @@ const getUserTransactions = async (req, res) => {
     }
   };
 
-// Delete a transaction
-const deleteTransaction = async (req, res) => {
+// Function to cancel a transaction
+const cancelTransaction = async (req, res) => {
+    const transactionId = req.params.transactionId; 
     try {
-        let userId = req.params.id;      
-        const deletedCount = await db.transactions.destroy({ where: { userId} });
-        if (deletedCount > 0) {
-            res.status(200).send('Transaction is deleted');
-        } else {
-            res.status(404).send('Transaction not found');
+        const transaction = await db.transactions.findOne({
+            where: { id: transactionId },
+        });
+
+        if (!transaction) {
+            return res.status(404).json({ message: 'Transaction not found' });
         }
+        const userId = transaction.userId; 
+        const amount = parseFloat(transaction.amount);
+        const type = transaction.type;
+
+        let netBalance = await db.netBalances.findOne({ where: { userId } });
+        if (!netBalance) {
+            return res.status(404).json({ message: 'Net balance not found for this user' });
+        }
+
+        let newBalance;
+        if (type === 'income') {
+            newBalance = netBalance.balance - amount;
+        } else if (type === 'expense') {
+            newBalance = netBalance.balance + amount;
+        } else if (type === 'saving') {
+            newBalance = netBalance.balance + amount;
+        } else {
+            return res.status(400).json({ message: 'Invalid transaction type' });
+        }
+        netBalance.balance = newBalance;
+        await netBalance.save();
+        transaction.isCancelled = true;
+        await transaction.save();
+        await db.cancelledTransactions.create({ transactionId });
+        console.log(`Transaction ${transactionId} cancelled and net balance updated to: ${newBalance}`);
+        return res.status(200).json({ message: `Transaction ${transactionId} cancelled successfully`, netBalance: newBalance });
     } catch (error) {
-        console.error('Error deleting transaction:', error);
-        res.status(500).send('Error deleting transaction');
+        console.error('Error cancelling transaction:', error.message);
+        return res.status(500).json({ message: 'Error cancelling transaction', error: error.message || error });
+    }
+};
+
+
+const getCancelledTransactionsForUser = async (req, res) => {
+    const userId = req.params.userId;
+
+    try {
+        const cancelledTransactions = await db.cancelledTransactions.findAll({
+            include: [
+                {
+                    model: db.transactions,
+                    as: 'transaction',
+                    where: {
+                        userId: userId,
+                        isCancelled: true
+                    },
+                    attributes: ['description', 'amount','type','category'],
+                },
+            ],
+            where: {
+                '$transaction.userId$': userId,
+            },
+            order: [['createdAt', 'DESC']],
+        });
+        return res.status(200).json({
+            message: 'Cancelled transactions retrieved successfully',
+            data: cancelledTransactions,
+        });
+    } catch (error) {
+        console.error('Error fetching cancelled transactions:', error.message);
+        return res.status(500).json({ message: 'Error fetching cancelled transactions' });
     }
 };
 
@@ -593,7 +654,6 @@ const generateDayReport = async (req, res) => {
 
 module.exports = {
     createTransaction,
-    deleteTransaction,
     getUserTransactions,
     generateDailyTransactionsReport,
     generateWeeklyTransactionsReport,
@@ -601,5 +661,7 @@ module.exports = {
     generateCustomTransactionsReportWithNetBalance,
     generateWeeklyReport,
     generateMonthlyReport,
-    generateDayReport
+    generateDayReport,
+    cancelTransaction,
+    getCancelledTransactionsForUser
 };

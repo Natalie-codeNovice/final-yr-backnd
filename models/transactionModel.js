@@ -16,7 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     category: {
       type: DataTypes.STRING,
       allowNull: true
-    }
+    },
+    isCancelled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    }    
   });
 
   return Transaction;

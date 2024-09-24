@@ -32,6 +32,7 @@ db.netBalances = require('./netBalanceModel.js')(sequelize, DataTypes);
 db.savings = require('./savingModel.js')(sequelize, DataTypes);
 db.categories = require('./categoryModel.js')(sequelize, DataTypes);
 db.loginSessions = require('./loginSessionsModel.js')(sequelize, DataTypes);
+db.cancelledTransactions = require('./cancelledTransactions.js')(sequelize, DataTypes);
 
 // Associations
 db.users.hasMany(db.transactions, {
@@ -80,6 +81,15 @@ db.transactions.hasMany(db.savings, {
 db.savings.belongsTo(db.transactions, {
     foreignKey: 'transactionId',
     as: 'transactions'
+});
+
+db.transactions.hasMany(db.cancelledTransactions, {
+    foreignKey: 'transactionId',
+    as: 'canceledTransactions'     
+});
+db.cancelledTransactions.belongsTo(db.transactions, {
+    foreignKey: 'transactionId',    
+    as: 'transaction'               
 });
 
 // Sync Models

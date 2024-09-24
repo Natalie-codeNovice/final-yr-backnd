@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 // Send notification email
 const sendNotificationEmail = (user, subject, text, html) => {
     let mailOptions = {
-        from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+        from: 'Personal Financial monitoring<no-reply@personalfinancialmonitoring.com>',
         to: user.email,
         subject: subject,
         text: text,

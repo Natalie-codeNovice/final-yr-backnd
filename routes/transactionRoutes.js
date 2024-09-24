@@ -7,7 +7,8 @@ const { authorizeUser } = require('../auth/authenticate.js');
 //transactions
 router.post('/add/:id',checkToken,authorizeUser, transactionController.createTransaction);
 router.get('/transactions/:id',checkToken,authorizeUser, transactionController.getUserTransactions);
-router.delete('/transactions/:id', transactionController.deleteTransaction);
+router.get('/cancelled-transactions/:userId',transactionController.getCancelledTransactionsForUser);
+router.post('/cancel-transactions/:transactionId', transactionController.cancelTransaction);
 
 //reports
 router.get('/day-report/:id',checkToken,authorizeUser, transactionController.generateDailyTransactionsReport);

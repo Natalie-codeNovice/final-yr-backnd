@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
 // Send notification email
 const sendNotificationEmail = (user, subject, text, html) => {
     let mailOptions = {
-        from: 'Personal Finance Tracker <no-reply@personalfinancetracker.com>',
+        from: 'Personal financial monitoring <no-reply@personalfinancemonitoring.com>',
         to: user.email,
         subject: subject,
         text: text,
@@ -172,8 +172,8 @@ const loginUser = async (req, res) => {
             sendNotificationEmail(
                 user,
                 'Login Notification',
-                `Dear ${user.username},\n\nYou have successfully logged in to your Personal Finance Tracker account.\n\nIf this wasn't you, please change your password immediately.`,
-                `<p>Dear ${user.username},</p><p>You have successfully logged in to your <strong>Personal Finance Tracker</strong> account.</p><p>If this wasn't you, please change your password immediately.</p>`
+                `Dear ${user.username},\n\nYou have successfully logged in to your Personal financial monitoring account.\n\nIf this wasn't you, please change your password immediately.`,
+                `<p>Dear ${user.username},</p><p>You have successfully logged in to your <strong>Personal financial monitoring</strong> account.</p><p>If this wasn't you, please change your password immediately.</p>`
             );
             return res
                 .cookie("access_token", token, {
@@ -195,8 +195,8 @@ const loginUser = async (req, res) => {
             sendNotificationEmail(
                 user,
                 'Failed Login Attempt Notification',
-                `Dear ${user.username},\n\nThere was an unsuccessful attempt to log in to your Personal Finance Tracker account with an incorrect password.\n\nIf this wasn't you, please ensure your account is secure.`,
-                `<p>Dear ${user.username},</p><p>There was an unsuccessful attempt to log in to your <strong>Personal Finance Tracker</strong> account with an incorrect password.</p><p>If this wasn't you, please ensure your account is secure.</p>`
+                `Dear ${user.username},\n\nThere was an unsuccessful attempt to log in to your Personal financial monitoring account with an incorrect password.\n\nIf this wasn't you, please ensure your account is secure.`,
+                `<p>Dear ${user.username},</p><p>There was an unsuccessful attempt to log in to your <strong>Personal financial monitoring</strong> account with an incorrect password.</p><p>If this wasn't you, please ensure your account is secure.</p>`
             );            
             return res.status(401).json({ message: 'Invalid credentials' });
         }
@@ -378,10 +378,10 @@ const forgotPassword = async (req, res) => {
         // Send the password reset email
         sendNotificationEmail(
             user,
-            'Your New Password for Personal Finance Tracker',
+            'Your New Password for Personal financial monitoring',
             `Dear ${user.username},
 
-We received a request to reset your password for your Personal Finance Tracker account.
+We received a request to reset your password for your Personal financial monitoring account.
 
 Your new password is: ${newPassword}
 
@@ -390,15 +390,15 @@ Please use this password to log in to your account. We recommend changing your p
 If you did not request a password reset, please ignore this email. If you need further assistance, feel free to contact our support team.
 
 Best regards,
-The Personal Finance Tracker Team
+The Personal financial monitoring Team
 `,
             `
     <p>Dear ${user.username},</p>
-    <p>We received a request to reset your password for your <strong>Personal Finance Tracker</strong> account.</p>
+    <p>We received a request to reset your password for your <strong>Personal financial monitoring</strong> account.</p>
     <p>Your new password is: <strong>${newPassword}</strong></p>
     <p>Please use this password to log in to your account. We recommend changing your password after you log in to something more memorable and secure.</p>
     <p>If you did not request a password reset, please ignore this email. If you need further assistance, feel free to contact our support team.</p>
-    <p>Best regards,<br>The Personal Finance Tracker Team</p>
+    <p>Best regards,<br>The Personal financial monitoring Team</p>
     `
         );
 
