@@ -10,7 +10,7 @@ const getIncome = async (req, res) => {
   try {
     // Fetch income transactions with pagination
     const income = await db.transactions.findAll({ 
-      where: { userId, type: 'income' },
+      where: { userId, type: 'income',isCancelled: false },
       limit: pageSize,
       offset: offset
     });
